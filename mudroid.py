@@ -6,15 +6,11 @@ from PIL import Image, ImageChops
 import pexpect
 from xml.etree import ElementTree
 import subprocess
+from mutation_analyser import MutationAnalyser
 
-id = 1
-DIFF_THRESHOLD = 10
-arithmeticOperator=['add-', 'rsub-', 'div-', 'mul-', 'rem-']
-relationalOperator=['if-eq', 'if-ne', 'if-lt', 'if-ge', 'if-gt', 'if-le']
-logicalConnector=[]
-unaryOperator=['not-', 'neg-']
+DIFF_THRESHOLD = 5
 
-def checkSimilarPictures(pic1, pic2, xMax=DIFF_THRESHOLD, yMax=DIFF_THRESHOLD):
+def checkSimilarPictures(pic1, pic2, x_max=DIFF_THRESHOLD, y_max=DIFF_THRESHOLD):
     image1 = Image.open(pic1)
     image2 = Image.open(pic2)
     # print pic1, pic2
@@ -24,64 +20,77 @@ def checkSimilarPictures(pic1, pic2, xMax=DIFF_THRESHOLD, yMax=DIFF_THRESHOLD):
         return True
     xdiff = abs(box[0] - box[2])
     ydiff = abs(box[1] - box[3])
-    if(xdiff >= xMax or ydiff >= yMax):
+    if(xdiff >= x_max or ydiff >= y_max):
         return False
-    return True
+    return False
 
-def compress(fileName, id):
-    output = '{}_{}.apk'.format(fileName, id)
-    command = ["apktool", "b", fileName, '-o{}'.format(output)]
+def readAndroidManifest(source_directory):
+    manifest = ElementTree.parse(os.path.join(source_directory, 'AndroidManifest.xml')).getroot()
+    package = manifest.get('package')
+    activities = manifest.find('application').findall('activity')
+    for activity in activities:
+        if 'android.intent.action.MAIN' in ElementTree.tostring(activity):
+            start_activity = activity.get('{http://schemas.android.com/apk/res/android}name')
+    start_activity = start_activity.replace(package, '')
+    return package, start_activity
+
+def compress(file_path, id):
+    output = os.path.join(file_path, '{}_{}.apk'.format(file_path, id))
+    command = ["apktool", "b", os.path.join(file_path, 'src'), '-o{}'.format(output)]
     subprocess.call(command)
     return output
 
-def decompress(fileName, isForce=False):
-    command = ["apktool", "d", fileName]
-    if isForce:
+def decompress(file_path, is_force=False):
+    source_directory = os.path.join(file_path[:-4], 'src')
+    command = ["apktool", "d", file_path, '-o%s' % source_directory]
+    if is_force:
         command.append('-f')
     subprocess.call(command)
+    return source_directory
 
-def signApk(fileName):
-    child = pexpect.spawn('jarsigner -verbose -keystore debug.keystore {} testKey'.format(fileName))
+def signApk(file_path):
+    child = pexpect.spawn('jarsigner -verbose -keystore debug.keystore {} testKey'.format(file_path))
     child.expect('Enter Passphrase for keystore:')
     child.sendline('123456')
     child.expect('jar signed')
 
-def captureScreen(picName, path):
-    imagePath = '%s/%s' % (path, picName)
-    devicePath = '/sdcard/%s' % picName
+def captureScreen(pic_name, path):
+    image_path = os.path.join(path, pic_name)
+    device_path = '/sdcard/%s' % pic_name
 
-    command = ['adb', 'shell', "screencap -p", devicePath]
+    command = ['adb', 'shell', "screencap -p", device_path]
     subprocess.call(command)
-    command = ['adb', 'pull', devicePath, imagePath]
+    command = ['adb', 'pull', device_path, image_path]
     subprocess.call(command)
-    command = ['adb', 'shell', 'rm', devicePath]
+    command = ['adb', 'shell', 'rm', device_path]
     subprocess.call(command)
-    img = Image.open(imagePath)
+    img = Image.open(image_path)
     w, h = img.size
-    img.crop((0, 80, w, h)).save(imagePath)
-    return imagePath
+    img.crop((0, 80, w, h)).save(image_path)
+    return image_path
 
-def executeApk(package, startActivity, fileName, commandList, path):
+def executeApk(package, start_activity, file_path, command_list, img_path):
 
     effective_commands = []
 
     command = ['adb', 'uninstall', package]
     subprocess.call(command)
-    command = ['adb', 'install', fileName]
+    command = ['adb', 'install', file_path]
     subprocess.call(command)
-    command = ['adb', 'shell', 'am start -n %s/%s' % (package, startActivity)]
+    command = ['adb', 'shell', 'am start -n %s/%s' % (package, start_activity)]
     subprocess.call(command)
     sleep(1)
 
-    img1 = captureScreen('%s_0.png' % fileName, path)
+    file_name = os.path.basename(file_path)
+    img1 = captureScreen('%s_0.png' % file_name, img_path)
 
-    for i, c in enumerate(commandList):
+    for i, c in enumerate(command_list):
         command = ['adb', 'shell', 'input', c]
         print '%d %s' % (i+1, command)
         subprocess.call(command)
 
-        pic = '%s_%d.png' % (fileName, i+1)
-        img2 = captureScreen(pic, path)
+        pic = '%s_%d.png' % (file_name, i+1)
+        img2 = captureScreen(pic, img_path)
         # sleep(0.1)
         while not os.path.isfile(img2):
             sleep(0.1)
@@ -94,121 +103,97 @@ def executeApk(package, startActivity, fileName, commandList, path):
 
     return list(set(effective_commands))
 
-
-def instrument(fileName, line, mutant):
-    with open(fileName) as f:
+def instrument(file_path, line, mutant):
+    with open(file_path) as f:
         content = f.readlines()
+    original = list(content)
     content[line-1] = mutant
-    with open(fileName, 'w') as f:
+    with open(file_path, 'w') as f:
         f.writelines(content)
+    return original
 
-def replaceOperator(original, operators):
-    mutant_list = []
-    original_operator = original['operator']
-    if original_operator in operators:
-        mutantion_operator_list = [operator for operator in operators if operator != original_operator]
-        for mutant in mutantion_operator_list:
-            original['mutant'] = original['line'].replace(original_operator, mutant)
-            global id
-            original['id'] = id
-            id = id + 1
-            mutant_list.append(original.copy())
-    return mutant_list
 
-def checkOperator(fileName, operators):
-    operator_list = []
-    method = []
-    with open(fileName) as f:
-        for num, line in enumerate(f, 1):
-            if '.method' in line:
-                method = line
-            for operator in operators:
-                if operator in line:
-                  original_key = {'file': fileName, 'line': line, 'line_num': num, 'operator': operator, 'method': method}
-                  mutant_key = replaceOperator(original_key, operators)
-                  operator_list += mutant_key        
-    return operator_list
+class ReportGenerator():
+    @staticmethod
+    def writeTable(outputFile, elements, is_header=False):
+        outputFile.write('<tr>\n')
+        for e in elements:
+            if is_header:
+                outputFile.write('<th>%s</th>\n' % e)
+            else:
+                outputFile.write('<td>%s</td>\n' % e)
+        outputFile.write('</tr>\n')
 
-def writeTable(outputFile, elements, isHeader=False):
-    outputFile.write('<tr>\n')
-    for e in elements:
-        if isHeader:
-            outputFile.write('<th>%s</th>\n' % e)
-        else:
-            outputFile.write('<td>%s</td>\n' % e)
-    outputFile.write('</tr>\n')
+    @staticmethod
+    def generateReport(operators, report_path):
+        report = open("%s/result.html" % report_path, "w")
+        report.write('''<style>
+        table {
+            border-collapse: collapse;
+        }
 
-def generateReport(operators):
-    report = open("%s/result.html" % resultPath, "w")
-    report.write('''<style>
-    table {
-        border-collapse: collapse;
-    }
+        table, td, th {
+            border: 1px solid black;
+        }
+        </style>''')
+        report.write('<table>\n')
+        ReportGenerator.writeTable(report, ['Id', 'Operator', 'Type', 'File', 'Line', 'Method', 'Original', 'Mutant', 'Killed'], True)
+        o2 = {'line': ''}
+        for o in operators:
+            if o2['line'] == o['line']:
+                ReportGenerator.writeTable(report, [o['id'], o['operator'], o['operator_type'], '', '', '', '', o['mutant'], o['killed']])
+            else:
+                ReportGenerator.writeTable(report, [o['id'], o['operator'], o['operator_type'], o['file'], o['line_num'], o['method'], o['line'], o['mutant'], o['killed']])
+            o2 = o
+        report.write('</table>\n')
 
-    table, td, th {
-        border: 1px solid black;
-    }
-    </style>''')
-    report.write('<table>\n')
-    writeTable(report, ['Original', 'File', 'Line', 'Method', 'Mutant', 'Killed'], True)
-    o2 = {'line': ''}
-    for o in operators:
-        if o2['line'] == o['line']:
-            writeTable(report, ['', '', '', '', o['mutant'], o['killed']])
-        else:
-            writeTable(report, [o['line'], o['file'], o['line_num'], o['method'], o['mutant'], o['killed']])
-        o2 = o
-    report.write('</table>\n')
+if __name__ == "__main__":
+    if (len(sys.argv)) != 2:
+        print 'Usage: mudroid.py <apk>'
+        sys.exit(2)
+    apk_file = sys.argv[1]
+    if not apk_file.endswith('.apk'):
+        print 'Input must be an Android Apk file!'
+        sys.exit(2)
 
-effective_commands = []
-commandList = [line.rstrip('\n') for line in open('commands.txt')]
-resultPath = strftime('%Y%m%d%H%M%S')
-os.mkdir(resultPath)
+    effective_commands = []
+    command_list = [line.rstrip('\n') for line in open('commands.txt')]
 
-apkName = "CleanCalculator.apk"
+    report_path = os.path.join(apk_file[:-4], 'report', strftime('%Y%m%d%H%M%S'))
+    os.makedirs(report_path)
 
-decompress(apkName,True)
+    source_directory = decompress(apk_file, True)
 
-manifest = ElementTree.parse(os.path.join(apkName[:-4], 'AndroidManifest.xml')).getroot()
-package = manifest.get('package')
+    package, start_activity = readAndroidManifest(source_directory)
 
-activities = manifest.find('application').findall('activity')
-for activity in activities:
-    if 'android.intent.action.MAIN' in ElementTree.tostring(activity):
-        startActivity = activity.get('{http://schemas.android.com/apk/res/android}name')
-startActivity = startActivity.replace(package, '')
+    effective_commands += list(set(executeApk(package, start_activity, apk_file, command_list, report_path)) - set(effective_commands))
 
-effective_commands += list(set(executeApk(package, startActivity, apkName, commandList, resultPath)) - set(effective_commands))
+    path = os.path.join(source_directory, 'smali', *package.split('.')) #TODO: Take paramater or read from file
+    mutation_analyser = MutationAnalyser()
+    operator_list = mutation_analyser.checkMutations(path)
+                
+    print len(operator_list)
 
-# path = os.path.join(apkName[:-4], 'smali', *package.split('.')) #TODO: Take paramater or read from file
-# operator_list=[]
-# for root, dirs, files in os.walk(path):
-#     for f in files:
-#         if f.endswith(".smali"):
-#             operator_list += checkOperator(os.path.join(root, f), arithmeticOperator)
+    for o in operator_list:
+        file_original = instrument(o['file'], o['line_num'], o['mutant'])
+        new_apk_path = compress(apk_file.split('.')[0], o['id'])
+        with open(o['file'], 'w') as f:
+            f.writelines(file_original)
+        signApk(new_apk_path)
 
-# print len(operator_list)
+        effective_commands += list(set(executeApk(package, start_activity, new_apk_path, command_list, report_path)) - set(effective_commands))
 
-# print operator_list
+        for i in range(0, len(command_list)+1):
+            original_image = "{}/{}_{}.png".format(report_path, apk_file, i)
+            instrumented_image = "{}/{}_{}.png".format(report_path, os.path.basename(new_apk_path), i)
+            if(not checkSimilarPictures(original_image, instrumented_image)):
+                o['killed'] = True
+                break
 
-# for o in operator_list:
-#     o['killed'] = False
-# #     instrument(o['file'], o['line_num'], o['mutant'])
-# #     newApk = compress(apkName.split('.')[0], o['id'])
-# #     signApk(newApk)
-# #     effective_commands += list(set(executeApk(package, startActivity, newApk, commandList, resultPath)) - set(effective_commands))
+    # seed = open("seed.txt", "w")
+    # for c in effective_commands:
+    #     seed.write("%s\n" % c)
 
-# #     for i in range(0, len(commandList)):
-# #         original_image = "{}/{}_{}.png".format(resultPath, apkName, i)
-# #         instrumented_image = "{}/{}_{}.png".format(resultPath, newApk, i)
-# #         if(not checkSimilarPictures(original_image, instrumented_image)):
-# #             o['killed'] = True
-# #             break
-
-# # seed = open("seed.txt", "w")
-# # for c in effective_commands:
-# #     seed.write("%s\n" % c)
-
-# generateReport(operator_list)
+    ReportGenerator.generateReport(operator_list, report_path)
 
 
