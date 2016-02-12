@@ -95,7 +95,8 @@ def executeApk(package, start_activity, file_path, command_list, img_path):
         while not os.path.isfile(img2):
             sleep(0.1)
         if(checkSimilarPictures(img1, img2)):
-            os.remove(img2)
+            # os.remove(img2)
+            print pic
         else:
             img1 = img2
             effective_commands.append(c)
@@ -166,7 +167,7 @@ if __name__ == "__main__":
 
     package, start_activity = readAndroidManifest(source_directory)
 
-    effective_commands += list(set(executeApk(package, start_activity, apk_file, command_list, report_path)) - set(effective_commands))
+    # effective_commands += list(set(executeApk(package, start_activity, apk_file, command_list, report_path)) - set(effective_commands))
 
     path = os.path.join(source_directory, 'smali', *package.split('.')) #TODO: Take paramater or read from file
     mutation_analyser = MutationAnalyser()
@@ -174,21 +175,21 @@ if __name__ == "__main__":
                 
     print len(operator_list)
 
-    for o in operator_list:
-        file_original = instrument(o['file'], o['line_num'], o['mutant'])
-        new_apk_path = compress(apk_file.split('.')[0], o['id'])
-        with open(o['file'], 'w') as f:
-            f.writelines(file_original)
-        signApk(new_apk_path)
+    # for o in operator_list:
+    #     file_original = instrument(o['file'], o['line_num'], o['mutant'])
+    #     new_apk_path = compress(apk_file.split('.')[0], o['id'])
+    #     with open(o['file'], 'w') as f:
+    #         f.writelines(file_original)
+    #     signApk(new_apk_path)
 
-        effective_commands += list(set(executeApk(package, start_activity, new_apk_path, command_list, report_path)) - set(effective_commands))
+    #     effective_commands += list(set(executeApk(package, start_activity, new_apk_path, command_list, report_path)) - set(effective_commands))
 
-        for i in range(0, len(command_list)+1):
-            original_image = "{}/{}_{}.png".format(report_path, apk_file, i)
-            instrumented_image = "{}/{}_{}.png".format(report_path, os.path.basename(new_apk_path), i)
-            if(not checkSimilarPictures(original_image, instrumented_image)):
-                o['killed'] = True
-                break
+    #     for i in range(0, len(command_list)+1):
+    #         original_image = "{}/{}_{}.png".format(report_path, apk_file, i)
+    #         instrumented_image = "{}/{}_{}.png".format(report_path, os.path.basename(new_apk_path), i)
+    #         if(not checkSimilarPictures(original_image, instrumented_image)):
+    #             o['killed'] = True
+    #             break
 
     # seed = open("seed.txt", "w")
     # for c in effective_commands:

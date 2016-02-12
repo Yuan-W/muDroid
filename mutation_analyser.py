@@ -6,14 +6,14 @@ import struct
 
 class MutationAnalyser:
 
-  ABS = 'ABS' #'Absolute Value Insertion'
+  ICR = 'ICR' #'Inline Constant Replacement'
   UOI = 'UOI' #'Unary Operator Insertion'
   LCR = 'LCR' #'Logical Connector Replacement'
   AOR = 'AOR' #'Arithmetic Operator Replacement'
   ROR = 'ROR' #'Relational Operator Replacement'
   RVR = 'RVR' #'Return Value Replacement'
 
-  valueOperator = {'name':ABS, 'operators':['\s*const.*\/.*#.*', '\s*const/(4|16)']}
+  valueOperator = {'name':ICR, 'operators':['\s*const.*\/.*#.*', '\s*const/(4|16)']}
   logicalConnector={'name':LCR, 'operators':['if-eqz|if-nez']}
 
   arithmeticOperator={'name':AOR, 'operators':['add-', 'rsub-', 'div-', 'mul-', 'rem-']}
@@ -23,7 +23,6 @@ class MutationAnalyser:
   returnOperator={'name':RVR, 'operators':['return-object', 'return v']}
 
   mutation_operators = [arithmeticOperator, logicalConnector, relationalOperator, unaryOperator, valueOperator, returnOperator]
-  # mutation_operators = [valueOperator, returnOperator]
 
   id = 1
 
@@ -43,12 +42,13 @@ class MutationAnalyser:
         if '.method' in line:
           method = line
         for operator in self.mutation_operators:
-          if operator['name'] == self.ABS or operator['name'] == self.LCR:
+          if operator['name'] == self.ICR or operator['name'] == self.LCR:
             for o in operator['operators']:
               if re.match(o, line):
-                # print 'Match: ', line
-                original_key = {'file': file_path, 'line': line, 'line_num': num, 'operator': o, 'operator_type': operator['name'], 'method': method, 'killed': False}
-                mutants += self.generateMutants(original_key)    
+                if not 'string' in line:
+                  # print 'Match: ', line
+                  original_key = {'file': file_path, 'line': line, 'line_num': num, 'operator': o, 'operator_type': operator['name'], 'method': method, 'killed': False}
+                  mutants += self.generateMutants(original_key)    
           else:
             for o in operator['operators']:
               if o in line:
@@ -64,7 +64,13 @@ class MutationAnalyser:
     return mutant
 
   def parseConst(self, line):
+    neg = False
+    print line
     value_raw = line.split(',')[-1].split(' ')[1].strip()
+    if value_raw[0] == '-':
+      neg = True
+      value_raw = value_raw[1:]
+    print value_raw
     if('#' in line):
       if('L' in line):
         value = struct.unpack('!d', value_raw[2:][:-1].decode("hex"))[0]
@@ -86,6 +92,8 @@ class MutationAnalyser:
         new_value = '0x1'
     # print value_raw
     # print new_value
+    if neg:
+      new_value = '-'+new_value
     return value_raw, new_value
 
   def generateMutants(self, key):
@@ -105,7 +113,7 @@ class MutationAnalyser:
       #   results.append(self.newMutant(key, key['line'].replace(key['operator'], 'if-eqz')))
       # elif key['operator'] == 'if-eqz':
       #   results.append(self.newMutant(key, key['line'].replace(key['operator'], 'if-nez')))
-    elif operator_type == self.ABS:
+    elif operator_type == self.ICR:
       old, new = self.parseConst(key['line'])
       results.append(self.newMutant(key, key['line'].replace(old, new)))
     elif operator_type == self.RVR:
