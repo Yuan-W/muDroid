@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/local/bin/python
 
 import sys, os, glob
 from time import sleep, strftime
@@ -139,10 +139,10 @@ class ReportGenerator():
         </style>''')
         report.write('<table>\n')
         ReportGenerator.writeTable(report, ['Id', 'Operator', 'Type', 'File', 'Line', 'Method', 'Original', 'Mutant', 'Killed'], True)
-        o2 = {'line': ''}
+        o2 = {'line_num': ''}
         for o in operators:
-            if o2['line'] == o['line']:
-                ReportGenerator.writeTable(report, [o['id'], o['operator'], o['operator_type'], '', '', '', '', o['mutant'], o['killed']])
+            if o2['line_num'] == o['line_num']:
+                ReportGenerator.writeTable(report, [o['id'], '', '', '', '', '', o['line'], o['mutant'], o['killed']])
             else:
                 ReportGenerator.writeTable(report, [o['id'], o['operator'], o['operator_type'], o['file'], o['line_num'], o['method'], o['line'], o['mutant'], o['killed']])
             o2 = o
@@ -169,7 +169,8 @@ if __name__ == "__main__":
 
     # effective_commands += list(set(executeApk(package, start_activity, apk_file, command_list, report_path)) - set(effective_commands))
 
-    path = os.path.join(source_directory, 'smali', *package.split('.')) #TODO: Take paramater or read from file
+    path = os.path.join(source_directory, 'smali')
+    # path = os.path.join(source_directory, 'smali', *package.split('.')) #TODO: Take paramater or read from file
     mutation_analyser = MutationAnalyser()
     operator_list = mutation_analyser.checkMutations(path)
                 
