@@ -1,4 +1,8 @@
+#!/usr/local/bin/python
+
+import argparse
 import sys, getopt
+import subprocess
 import random
 
 eventType = ['tap', 'swipe', 'text']
@@ -21,16 +25,29 @@ def randomCommand(width, height):
         command = '{} {}'.format(eventType[event], testString)
     return command
 
+def usage():
+    print 'usage: generate [-c] <number of events> <screen width> <screen height>'
 
 if __name__ == "__main__":
-    if (len(sys.argv)) != 4:
-        print 'Usage: inputGen.py <number of events> <screen width> <screen height>'
-        sys.exit(2)
-    number = int(sys.argv[1])
-    width = int(sys.argv[2])
-    height = int(sys.argv[3])
+    parser = argparse.ArgumentParser(description='generate screen events.')
+    parser.add_argument('-a', '--auto', help='auto detect screen resolution', action='store_true')
+    parser.add_argument("number", help="mumber of events to generate", type=int)
+    parser.add_argument('width', type=int, nargs='?', help='max width in pixel', default=1200)
+    parser.add_argument('height', type=int, nargs='?', help='max height in pixel', default=1920)
+
+    args = parser.parse_args()
+    if(args.auto):
+        output = subprocess.check_output(['adb shell dumpsys window | grep "mUnrestrictedScreen"'], shell=True)
+        res = output.split(' ')[-1].split('x')
+        width = int(res[0])
+        height = int(res[1])
+        print 'Screen Resolution: %dx%d' % (width, height)
+    else:
+        width = args.width
+        height = args.height
+
     commandList = []
-    for i in range(0, number):
+    for i in range(0, args.number):
         c = randomCommand(width, height)
         print c
         commandList.append(c)
