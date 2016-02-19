@@ -13,7 +13,7 @@ def randomCommand(width, height):
     command = ''
     if event == 0:
         x = random.randint(0, width)
-        y = random.randint(0, height)
+        y = random.randint(60, height)
         command = '{} {} {}'.format(eventType[event], x, y)
     elif event == 1:
         x1 = random.randint(0, width)
