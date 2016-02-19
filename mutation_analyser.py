@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import os
 import re
 import struct
@@ -14,16 +12,16 @@ class MutationAnalyser:
   RVR = 'RVR' #'Return Value Replacement'
 
   valueOperator = {'name':ICR, 'operators':['\s*const.*\/.*#.*', '\s*const/(4|16)']}
-  logicalConnector={'name':LCR, 'operators':['if-eqz|if-nez']}
+  logicalConnector={'name':LCR, 'operators':['(if-nez|if-eqz).*']}
 
   arithmeticOperator={'name':AOR, 'operators':['add-', 'rsub-', 'sub-', 'div-', 'mul-', 'rem-']}
-  relationalOperator={'name':ROR, 'operators':['if-eqz', 'if-nez', 'if-ltz', 'if-gez', 'if-gtz', 'if-lez',
-  'if-eq', 'if-ne', 'if-lt', 'if-ge', 'if-gt', 'if-le']}
+  relationalOperator={'name':ROR, 'operators':['if-eq', 'if-ne', 'if-lt', 'if-ge', 'if-gt', 'if-le']} 
+  #TODO: Verify if-eqz will be used when b is 0 in a == b
   
-  unaryOperator={'name':UOI, 'operators':['not-', 'neg-']}
+  unaryOperator={'name':UOI, 'operators':['not-', 'neg-']} # TODO: a=!b
   returnOperator={'name':RVR, 'operators':['return-object', 'return v']}
 
-  mutation_operators = [arithmeticOperator, logicalConnector, relationalOperator, unaryOperator, valueOperator, returnOperator]
+  mutation_operators = [arithmeticOperator, relationalOperator, unaryOperator, valueOperator, returnOperator]
 
   id = 1
 
@@ -38,14 +36,25 @@ class MutationAnalyser:
   def findMutations(self, file_path):
     mutants = []
     method = ''
-    with open(file_path) as f:
+    section = ''
+    indent = ' '*20
+    with open(file_path, 'r') as f:
       for num, line in enumerate(f, 1):
-        if 'rsub-' in line:
-          print file_path, num, line
         if '.method' in line:
           method = line
+        if '.line' in line:
+          indent = line.split('.')[0]
+          match = re.findall(self.logicalConnector['operators'][0], section)
+          if(len(match) == 2):
+            print '*'*60
+            print file_path
+            print section
+            print '*'*60
+          section = ''
+        if line.startswith(indent):
+          section = section + line
         for operator in self.mutation_operators:
-          if operator['name'] == self.ICR or operator['name'] == self.LCR:
+          if operator['name'] == self.ICR:
             for o in operator['operators']:
               if re.match(o, line):
                 if not ('string' in line or 'Y' in line):
@@ -57,7 +66,13 @@ class MutationAnalyser:
               if o in line:
                 original_key = {'file': file_path, 'line': line, 'line_num': num, 'operator': o, 'operator_type': operator['name'], 'method': method, 'killed': False}
                 mutants += self.generateMutants(original_key)
-                break    
+                break
+    match = re.findall(self.logicalConnector['operators'][0], section)
+    if(len(match) == 2):
+      print '*'*60
+      print file_path
+      print section
+      print '*'*60
     return mutants
 
   def newMutant(self, key, content):
@@ -71,7 +86,7 @@ class MutationAnalyser:
     results = []
     operator_type = key['operator_type']
 
-    if operator_type != self.AOR:
+    if operator_type != self.LCR:
       return []
 
     if operator_type == self.UOI:

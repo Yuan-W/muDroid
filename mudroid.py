@@ -36,13 +36,13 @@ def readAndroidManifest(source_directory):
 
 def compress(file_path, id):
     output = os.path.join(file_path, '{}_{}.apk'.format(file_path, id))
-    command = ["apktool", "b", os.path.join(file_path, 'src'), '-o{}'.format(output)]
+    command = ["./apktool", "b", os.path.join(file_path, 'src'), '-o{}'.format(output)]
     subprocess.call(command)
     return output
 
 def decompress(file_path, is_force=False):
     source_directory = os.path.join(file_path[:-4], 'src')
-    command = ["apktool", "d", file_path, '-o%s' % source_directory]
+    command = ["./apktool", "d", file_path, '-o%s' % source_directory]
     if is_force:
         command.append('-f')
     subprocess.call(command)
@@ -71,7 +71,7 @@ def captureScreen(pic_name, path):
 
 def executeApk(package, start_activity, file_path, command_list, img_path):
 
-    effective_commands = []
+    # effective_commands = []
 
     command = ['adb', 'uninstall', package]
     subprocess.call(command)
@@ -99,10 +99,10 @@ def executeApk(package, start_activity, file_path, command_list, img_path):
             print pic
         else:
             img1 = img2
-            effective_commands.append(c)
+            # effective_commands.append(c)
             # break
 
-    return list(set(effective_commands))
+    # return list(set(effective_commands))
 
 def instrument(file_path, line, mutant):
     with open(file_path) as f:
@@ -169,8 +169,8 @@ if __name__ == "__main__":
 
     # effective_commands += list(set(executeApk(package, start_activity, apk_file, command_list, report_path)) - set(effective_commands))
 
-    path = os.path.join(source_directory, 'smali')
-    # path = os.path.join(source_directory, 'smali', *package.split('.')) #TODO: Take paramater or read from file
+    # path = os.path.join(source_directory, 'smali')
+    path = os.path.join(source_directory, 'smali', *package.split('.')) #TODO: Take paramater or read from file
     mutation_analyser = MutationAnalyser()
     operator_list = mutation_analyser.checkMutations(path)
                 
