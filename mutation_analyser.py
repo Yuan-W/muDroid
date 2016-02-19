@@ -86,8 +86,8 @@ class MutationAnalyser:
     results = []
     operator_type = key['operator_type']
 
-    if operator_type != self.LCR:
-      return []
+    # if operator_type != self.LCR:
+    #   return []
 
     if operator_type == self.UOI:
       results.append(self.newMutant(key, key['line']*2))
@@ -173,10 +173,11 @@ class MutationAnalyser:
     return results
 
   def reverseVariables(self, line):
-    split_line = line.split(',')
-    temp = split_line[1]
-    split_line[1] = ' '+split_line[2].strip()
-    split_line[2] = split_line[2].replace(split_line[2].strip(), temp)
-    rev_line = ','.join(split_line)
-    # print line, rev_line
-    return rev_line
+    return line
+    # split_line = line.split(',')
+    # temp = split_line[1]
+    # split_line[1] = ' '+split_line[2].strip()
+    # split_line[2] = split_line[2].replace(split_line[2].strip(), temp)
+    # rev_line = ','.join(split_line)
+    # # print line, rev_line
+    # return rev_line
