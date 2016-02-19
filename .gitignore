@@ -2,3 +2,5 @@
 *.apk
 *.png
 *.jar
+*.pyc
+!apktool.jar
