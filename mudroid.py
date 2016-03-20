@@ -41,7 +41,7 @@ def compress(file_path, id):
     return output
 
 def decompress(file_path, is_force=False):
-    source_directory = os.path.join(file_path[:-4], 'src')
+    source_directory = os.path.join(file_path[:-4], 'src').replace('.', '-')
     command = ["./apktool", "d", file_path, '-o%s' % source_directory]
     if is_force:
         command.append('-f')
@@ -159,7 +159,7 @@ if __name__ == "__main__":
 
     package, start_activity = readAndroidManifest(source_directory)
 
-    executeOriginal(package, start_activity, apk_file, report_path, command_list)
+    # executeOriginal(package, start_activity, apk_file, report_path, command_list)
 
     # path = os.path.join(source_directory, 'smali')
     path = os.path.join(source_directory, 'smali', *package.split('.')) #TODO: Take paramater or read from file
@@ -167,6 +167,8 @@ if __name__ == "__main__":
     operator_list = mutation_analyser.checkMutations(path)
                 
     print len(operator_list)
+
+    # TODO: Selection
 
     for o in operator_list:
         file_original = instrument(o['file'], o['line_num'], o['mutant'])
