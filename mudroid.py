@@ -96,11 +96,13 @@ def executeCommand(command, img_path, img_name):
     while not os.path.isfile(img):
         sleep(0.1)
 
-def instrument(file_path, line, mutant):
+def instrument(file_path, line, mutant, lable_line=None, lable=None):
     with open(file_path) as f:
         content = f.readlines()
     original = list(content)
     content[line-1] = mutant
+    if lable_line != None:
+        content[lable_line-1] = lable
     with open(file_path, 'w') as f:
         f.writelines(content)
     return original
@@ -159,7 +161,7 @@ if __name__ == "__main__":
 
     package, start_activity = readAndroidManifest(source_directory)
 
-    # executeOriginal(package, start_activity, apk_file, report_path, command_list)
+    executeOriginal(package, start_activity, apk_file, report_path, command_list)
 
     # path = os.path.join(source_directory, 'smali')
     path = os.path.join(source_directory, 'smali', *package.split('.')) #TODO: Take paramater or read from file
@@ -171,7 +173,10 @@ if __name__ == "__main__":
     # TODO: Selection
 
     for o in operator_list:
-        file_original = instrument(o['file'], o['line_num'], o['mutant'])
+        if 'label' in o:
+            file_original = instrument(o['file'], o['line_num'], o['mutant'], o['label_line'], o['label'])
+        else:
+            file_original = instrument(o['file'], o['line_num'], o['mutant'])
         new_apk_path = compress(apk_file.split('.')[0], o['id'])
         with open(o['file'], 'w') as f:
             f.writelines(file_original)
@@ -190,7 +195,7 @@ if __name__ == "__main__":
             instrumented_image = "{}/{}_{}.png".format(report_path, os.path.basename(new_apk_path), i+1)
             if(not checkSimilarPictures(original_image, instrumented_image)):
                 o['killed'] = True
-                break  
+                break
 
 
     # seed = open("seed.txt", "w")

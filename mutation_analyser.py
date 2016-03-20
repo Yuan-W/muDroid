@@ -11,6 +11,8 @@ class MutationAnalyser:
   ROR = 'ROR' #'Relational Operator Replacement'
   RVR = 'RVR' #'Return Value Replacement'
 
+  methodConds={}
+
   valueOperator = {'name':ICR, 'operators':['\s*const.*\/.*#.*', '\s*const/(4|16)']}
   logicalConnector={'name':LCR, 'operators':['((if-nez|if-eqz).*)(:.*)']}
 
@@ -35,24 +37,33 @@ class MutationAnalyser:
 
   def findMutations(self, file_path):
     mutants = []
+    lcr_keys = []
     method = ''
     section = ''
     indent = ' '*20
     sec_num = 1
+    max_conds = -1
     with open(file_path, 'r') as f:
       for num, line in enumerate(f, 1):
         if '.method' in line:
           method = line
-        if '.line' in line:
+          max_conds = -1
+        elif '.end method' in line:
+          if max_conds >=0:
+            hashkey = file_path+':'+method
+            self.methodConds[hashkey]=max_conds
+        elif ':cond' in line:
+          cond_num = int(re.search(':cond_([0-9]*)', line).group(1))
+          if cond_num > max_conds:
+            max_conds = cond_num
+          # print line, cond_num, max_conds
+        elif '.line' in line:
           indent = line.split('.')[0]
           lcr_match = re.findall(self.logicalConnector['operators'][0], section)
           if(len(lcr_match) == 2):
-            # print '*'*40
-            # print section
-            # print '*'*40
-            original_key = {'file': file_path, 'section': section, 'line_num': sec_num, 'operator': self.logicalConnector['operators'][0], 'operator_type': self.LCR, 'method': method, 'killed': False}
-            mutants += self.generateMutants(original_key)
-            print original_key
+            lcr_keys.append({'file': file_path, 'section': section, 'line_num': sec_num, 'operator': self.logicalConnector['operators'][0], 'operator_type': self.LCR, 'method': method, 'killed': False})
+            # mutants += self.generateMutants(original_key)
+            # print original_key
           sec_num = num
           section = ''
         if line.startswith(indent) or line == '\n':
@@ -72,8 +83,9 @@ class MutationAnalyser:
                 break
     lcr_match = re.findall(self.logicalConnector['operators'][0], section)
     if(len(lcr_match) == 2):
-      original_key = {'file': file_path, 'section': section, 'line_num': sec_num, 'operator': o, 'operator_type': self.LCR, 'method': method, 'killed': False}
-      mutants += self.generateMutants(original_key)
+      lcr_keys.append({'file': file_path, 'section': section, 'line_num': sec_num, 'operator': o, 'operator_type': self.LCR, 'method': method, 'killed': False})
+    for key in lcr_keys:
+      mutants += self.generateMutants(key)
     return mutants
 
   def newMutant(self, key, content):
@@ -84,52 +96,25 @@ class MutationAnalyser:
     return mutant
 
   def generateMutants(self, key):
-    results = []
     operator_type = key['operator_type']
 
-    # if operator_type != self.LCR:
-    #   return []
-
     if operator_type == self.UOI:
-      results.append(self.newMutant(key, key['line']*2))
+      return [self.newMutant(key, key['line']*2)]
     elif operator_type == self.LCR:
-      print '-'*20
-      match = re.findall(self.logicalConnector['operators'][0], key['section'])
-      first_line = match[0][0] + match[0][2]
-      for s in (key['section'].split('\n')):
-        # print repr(s.strip())
-        if(s.strip() == first_line):
-          key['line'] = s+'\n'
-          break
-        key['line_num'] = key['line_num'] + 1
-      if(match[0][1] != match[1][1]):
-        replacement = key['line'].replace(match[0][2], match[1][2])
-        if('nez') in replacement:
-          replacement = replacement.replace('nez','eqz')
-        else:
-          replacement = replacement.replace('eqz','nez')
-        results.append(self.newMutant(key, replacement))
-      else:
-        return []
-
-      print '-'*20
-      
-      # if key['operator'] == 'if-nez':
-      #   results.append(self.newMutant(key, key['line'].replace(key['operator'], 'if-eqz')))
-      # elif key['operator'] == 'if-eqz':
-      #   results.append(self.newMutant(key, key['line'].replace(key['operator'], 'if-nez')))
+      return [self.processLCR(key)]
     elif operator_type == self.ICR:
       old, new = self.processConst(key['line'])
-      results.append(self.newMutant(key, key['line'].replace(old, new)))
+      return [self.newMutant(key, key['line'].replace(old, new))]
     elif operator_type == self.RVR:
-      results.append(self.newMutant(key, 'return-void'))
+      return [self.newMutant(key, 'return-void')]
     elif operator_type == self.AOR:
       return self.processAOR(key)
     else: #ROR
+      results = []
       mutants = [operator for operator in self.relationalOperator['operators'] if operator != key['operator']]
       for mutant in mutants:
         results.append(self.newMutant(key, key['line'].replace(key['operator'], mutant)))
-    return results
+      return results
 
   def processConst(self, line):
     neg = False
@@ -168,7 +153,7 @@ class MutationAnalyser:
     operators = self.arithmeticOperator['operators']
     results = []
     if key['operator'] == 'rsub-':
-        rev_line = self.invertVariables(key['line'])
+        rev_line = key['line']
         mutants = [operator for operator in operators if (operator != key['operator'] and operator != 'sub-')]
         op = key['operator']
         if 'lit' not in key['line']:
@@ -181,7 +166,7 @@ class MutationAnalyser:
       mutants = [operator for operator in operators if operator not in [key['operator'], 'sub-', 'rsub-']]
       for mutant in mutants:
         results.append(self.newMutant(key, key['line'].replace(key['operator'], mutant)))
-      rev_line = self.invertVariables(key['line'])
+      rev_line = key['line']
       if 'lit16' in key['line']:
         results.append(self.newMutant(key, rev_line.replace(key['operator'], 'rsub-').replace('/lit16', '')))
       else:
@@ -196,17 +181,53 @@ class MutationAnalyser:
   def invertVariables(self, line):
     split_line = line.split(',')
 
-    split_line[1] = split_line[1].strip()
     split_line[2] = split_line[2].strip()
-    if split_line[1][0] == '-':
-      split_line[1] = split_line[1][1:]
-    else:
-      split_line[1] = '-'+split_line[1]
 
     if split_line[2][0] == '-':
       split_line[2] = split_line[2][1:]
     else:
       split_line[2] = '-'+split_line[2]
 
-    rev_line = ','.join(split_line)
-    return rev_line
+    inv_line = ','.join(split_line)
+    return inv_line
+
+  def processLCR(self, key):
+    match = re.findall(self.logicalConnector['operators'][0], key['section'])
+    section_start = key['line_num']
+    first_line = match[0][0] + match[0][2]
+    splitted_lines = (key['section'].split('\n'))
+    for s in splitted_lines:
+      # print repr(s.strip())
+      if(s.strip() == first_line):
+        key['line'] = s+'\n'
+        break
+      key['line_num'] = key['line_num'] + 1
+
+    # || to &&
+    if(match[0][1] != match[1][1]): 
+      replacement = key['line'].replace(match[0][2], match[1][2])
+      if('nez') in replacement:
+        replacement = replacement.replace('nez','eqz')
+      else:
+        replacement = replacement.replace('eqz','nez')
+      return self.newMutant(key, replacement)
+
+    # && to ||
+    else:
+      hashkey = key['file']+':'+key['method']
+      cond_num = self.methodConds[hashkey] + 1
+      replacement = key['line'].replace(match[0][2], ':cond_%d' % cond_num)
+      new_mutant = self.newMutant(key, replacement)
+      second_line = match[1][0] + match[1][2]
+      second_line_num = key['line_num']
+      diff = key['line_num'] - section_start
+      indent = ''
+      for i in range(diff, len(splitted_lines)):
+        if splitted_lines[i].strip() == second_line:
+          indent = splitted_lines[i].split('if')[0]
+          break
+        second_line_num += 1
+      new_mutant['label_line'] = second_line_num + 1
+      new_mutant['label'] = '%s:cond_%d\n' % (indent, cond_num)
+      # print new_mutant['label_line'], new_mutant['lable']
+      return new_mutant
