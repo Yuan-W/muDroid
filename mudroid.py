@@ -168,7 +168,7 @@ if __name__ == "__main__":
     mutation_analyser = MutationAnalyser()
     operator_list = mutation_analyser.checkMutations(path)
                 
-    print len(operator_list)
+    print "\nNumber of mutants generated: %d\n" % len(operator_list)
 
     # TODO: Selection
 
