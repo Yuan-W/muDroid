@@ -143,7 +143,10 @@ class MutationAnalyser:
       elif(value == 1):
         new_value = '0x0'
       else:
-        new_value = hex(value+1)
+        if '/4' in line and value == 7:
+          new_value = '-0x8'
+        else:
+          new_value = hex(value+1)
         
     if neg:
       new_value = '-'+new_value

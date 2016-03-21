@@ -1,5 +1,6 @@
 #!/usr/local/bin/python
 
+import argparse
 import sys, os, glob
 from time import sleep, strftime
 from PIL import Image, ImageChops
@@ -143,10 +144,12 @@ class ReportGenerator():
         report.write('</table>\n')
 
 if __name__ == "__main__":
-    if (len(sys.argv)) != 2:
-        print 'Usage: mudroid.py <apk>'
-        sys.exit(2)
-    apk_file = sys.argv[1]
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--no-sim', help='No simulation', action='store_true')
+    parser.add_argument('apk', help='auto detect screen resolution')
+    args = parser.parse_args()
+
+    apk_file = args.apk
     if not apk_file.endswith('.apk'):
         print 'Input must be an Android Apk file!'
         sys.exit(2)
@@ -161,8 +164,6 @@ if __name__ == "__main__":
 
     package, start_activity = readAndroidManifest(source_directory)
 
-    executeOriginal(package, start_activity, apk_file, report_path, command_list)
-
     # path = os.path.join(source_directory, 'smali')
     path = os.path.join(source_directory, 'smali', *package.split('.')) #TODO: Take paramater or read from file
     mutation_analyser = MutationAnalyser()
@@ -171,6 +172,8 @@ if __name__ == "__main__":
     print "\nNumber of mutants generated: %d\n" % len(operator_list)
 
     # TODO: Selection
+    if not args.no_sim:
+        executeOriginal(package, start_activity, apk_file, report_path, command_list)
 
     for o in operator_list:
         if 'label' in o:
@@ -182,20 +185,21 @@ if __name__ == "__main__":
             f.writelines(file_original)
         signApk(new_apk_path)
         
-        executeApk(package, start_activity, new_apk_path, report_path)
-        original_image = "{}/{}_0.png".format(report_path, apk_file)
-        instrumented_image = "{}/{}_0.png".format(report_path, os.path.basename(new_apk_path))
-        if(not checkSimilarPictures(original_image, instrumented_image)):
-            o['killed'] = True
-            continue  
-        for i, c in enumerate(command_list):
-            img_name= "{}_{}.png".format(os.path.basename(new_apk_path), i+1)
-            executeCommand(c, report_path, img_name)
-            original_image = "{}/{}_{}.png".format(report_path, apk_file, i+1)
-            instrumented_image = "{}/{}_{}.png".format(report_path, os.path.basename(new_apk_path), i+1)
+        if not args.no_sim:
+            executeApk(package, start_activity, new_apk_path, report_path)
+            original_image = "{}/{}_0.png".format(report_path, apk_file)
+            instrumented_image = "{}/{}_0.png".format(report_path, os.path.basename(new_apk_path))
             if(not checkSimilarPictures(original_image, instrumented_image)):
                 o['killed'] = True
-                break
+                continue  
+            for i, c in enumerate(command_list):
+                img_name= "{}_{}.png".format(os.path.basename(new_apk_path), i+1)
+                executeCommand(c, report_path, img_name)
+                original_image = "{}/{}_{}.png".format(report_path, apk_file, i+1)
+                instrumented_image = "{}/{}_{}.png".format(report_path, os.path.basename(new_apk_path), i+1)
+                if(not checkSimilarPictures(original_image, instrumented_image)):
+                    o['killed'] = True
+                    break
 
 
     # seed = open("seed.txt", "w")
