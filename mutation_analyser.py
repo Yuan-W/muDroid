@@ -103,8 +103,7 @@ class MutationAnalyser:
     elif operator_type == self.LCR:
       return [self.processLCR(key)]
     elif operator_type == self.ICR:
-      old, new = self.processConst(key['line'])
-      return [self.newMutant(key, key['line'].replace(old, new))]
+      return [self.newMutant(key, self.processConst(key['line']))]
     elif operator_type == self.RVR:
       return [self.newMutant(key, 'return-void')]
     elif operator_type == self.AOR:
@@ -150,7 +149,11 @@ class MutationAnalyser:
         
     if neg:
       new_value = '-'+new_value
-    return value_raw, new_value
+
+    new_line = line.replace(value_raw, new_value)
+    if '/high16' in line and int(new_value[:-1][6:]) !=0:
+      new_line = new_line.replace('/high16', '')
+    return new_line
   
   def processAOR(self, key):
     operators = self.arithmeticOperator['operators']

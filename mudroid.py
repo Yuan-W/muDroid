@@ -175,6 +175,7 @@ if __name__ == "__main__":
     if not args.no_sim:
         executeOriginal(package, start_activity, apk_file, report_path, command_list)
 
+
     for o in operator_list:
         if 'label' in o:
             file_original = instrument(o['file'], o['line_num'], o['mutant'], o['label_line'], o['label'])
