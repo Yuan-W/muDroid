@@ -53,10 +53,12 @@ class MutationAnalyser:
             hashkey = file_path+':'+method
             self.methodConds[hashkey]=max_conds
         elif ':cond' in line:
-          cond_num = int(re.search(':cond_([0-9]*)', line).group(1))
-          if cond_num > max_conds:
-            max_conds = cond_num
-          # print line, cond_num, max_conds
+          cond_num_raw = re.search(':cond_([0-9]*)', line).group(1)
+          if cond_num_raw != '':
+            cond_num = int(cond_num_raw)
+            if cond_num > max_conds:
+              max_conds = cond_num
+            # print line, cond_num, max_conds
         elif '.line' in line:
           indent = line.split('.')[0]
           lcr_match = re.findall(self.logicalConnector['operators'][0], section)
@@ -146,9 +148,6 @@ class MutationAnalyser:
           new_value = '-0x8'
         else:
           new_value = hex(value+1)
-        
-    if neg:
-      new_value = '-'+new_value
 
     new_line = line.replace(value_raw, new_value)
     if '/high16' in line and int(new_value[:-1][6:]) !=0:

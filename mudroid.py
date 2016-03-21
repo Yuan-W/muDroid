@@ -21,9 +21,9 @@ def checkSimilarPictures(pic1, pic2, x_max=DIFF_THRESHOLD, y_max=DIFF_THRESHOLD)
         return True
     xdiff = abs(box[0] - box[2])
     ydiff = abs(box[1] - box[3])
-    if(xdiff >= x_max or ydiff >= y_max):
+    if(xdiff >= x_max and ydiff >= y_max):
         return False
-    return False
+    return True
 
 def readAndroidManifest(source_directory):
     manifest = ElementTree.parse(os.path.join(source_directory, 'AndroidManifest.xml')).getroot()
@@ -175,8 +175,9 @@ if __name__ == "__main__":
     if not args.no_sim:
         executeOriginal(package, start_activity, apk_file, report_path, command_list)
 
-
     for o in operator_list:
+        # if(int(o['id']) <= 574):
+        #     continue
         if 'label' in o:
             file_original = instrument(o['file'], o['line_num'], o['mutant'], o['label_line'], o['label'])
         else:
