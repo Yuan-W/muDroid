@@ -14,7 +14,7 @@ class MutationAnalyser:
   methodConds={}
 
   valueOperator = {'name':ICR, 'operators':['\s*const.*\/.*#.*', '\s*const/(4|16)']}
-  logicalConnector={'name':LCR, 'operators':['((if-nez|if-eqz).*)(:.*)']}
+  logicalConnector={'name':LCR, 'operators':['((if-).*)(:.*)']}
 
   arithmeticOperator={'name':AOR, 'operators':['add-', 'rsub-', 'sub-', 'div-', 'mul-', 'rem-']}
   relationalOperator={'name':ROR, 'operators':['if-eq', 'if-ne', 'if-lt', 'if-ge', 'if-gt', 'if-le']} 
@@ -43,6 +43,7 @@ class MutationAnalyser:
     indent = ' '*20
     sec_num = 1
     max_conds = -1
+    ori_line_num = 0
     with open(file_path, 'r') as f:
       for num, line in enumerate(f, 1):
         if '.method' in line:
@@ -60,13 +61,14 @@ class MutationAnalyser:
               max_conds = cond_num
             # print line, cond_num, max_conds
         elif '.line' in line:
-          indent = line.split('.')[0]
           lcr_match = re.findall(self.logicalConnector['operators'][0], section)
           if(len(lcr_match) == 2):
-            lcr_keys.append({'file': file_path, 'section': section, 'line_num': sec_num, 'operator': self.logicalConnector['operators'][0], 'operator_type': self.LCR, 'method': method, 'killed': False})
+            lcr_keys.append({'file': file_path, 'section': section, 'line_num': sec_num, 'ori_line_num': ori_line_num, 'operator': self.logicalConnector['operators'][0], 'operator_type': self.LCR, 'method': method, 'killed': False})
             # mutants += self.generateMutants(original_key)
             # print original_key
           sec_num = num
+          indent = line.split('.')[0]
+          ori_line_num = line.strip().split(' ')[1]
           section = ''
         if line.startswith(indent) or line == '\n':
           section = section + line
@@ -75,17 +77,17 @@ class MutationAnalyser:
             for o in operator['operators']:
               if re.match(o, line):
                 if not ('string' in line or 'Y' in line):
-                  original_key = {'file': file_path, 'line': line, 'line_num': num, 'operator': o, 'operator_type': operator['name'], 'method': method, 'killed': False}
+                  original_key = {'file': file_path, 'line': line, 'line_num': num, 'ori_line_num': ori_line_num, 'operator': o, 'operator_type': operator['name'], 'method': method, 'killed': False}
                   mutants += self.generateMutants(original_key)    
           else:
             for o in operator['operators']:
               if o in line:
-                original_key = {'file': file_path, 'line': line, 'line_num': num, 'operator': o, 'operator_type': operator['name'], 'method': method, 'killed': False}
+                original_key = {'file': file_path, 'line': line, 'line_num': num, 'ori_line_num': ori_line_num, 'operator': o, 'operator_type': operator['name'], 'method': method, 'killed': False}
                 mutants += self.generateMutants(original_key)
                 break
     lcr_match = re.findall(self.logicalConnector['operators'][0], section)
     if(len(lcr_match) == 2):
-      lcr_keys.append({'file': file_path, 'section': section, 'line_num': sec_num, 'operator': o, 'operator_type': self.LCR, 'method': method, 'killed': False})
+      lcr_keys.append({'file': file_path, 'section': section, 'line_num': sec_num, 'ori_line_num': ori_line_num, 'operator': o, 'operator_type': self.LCR, 'method': method, 'killed': False})
     for key in lcr_keys:
       mutants += self.generateMutants(key)
     return mutants

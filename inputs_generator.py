@@ -1,7 +1,7 @@
 #!/usr/local/bin/python
 
 import argparse
-import sys, getopt
+import os, sys, getopt
 import subprocess
 import random
 
@@ -25,6 +25,22 @@ def randomCommand(width, height):
         command = '{} {}'.format(eventType[event], testString)
     return command
 
+def generateCommands(number, height, width, output_dir=''):
+    commandList = []
+
+    for i in range(0, number):
+        c = randomCommand(width, height)
+        # print c
+        commandList.append(c)
+
+    if output_dir == '':
+        f = open("commands", "w")
+    else:
+        f = open(os.path.join(output_dir, 'commands'), 'w')
+    
+    for c in commandList:
+        f.write("%s\n" % c)
+
 def usage():
     print 'usage: generate [-c] <number of events> <screen width> <screen height>'
 
@@ -46,13 +62,6 @@ if __name__ == "__main__":
         width = args.width
         height = args.height
 
-    commandList = []
-    for i in range(0, args.number):
-        c = randomCommand(width, height)
-        print c
-        commandList.append(c)
-    f = open("commands.txt", "w")
-    for c in commandList:
-        f.write("%s\n" % c)
+    generateCommands(args.number, height, width)
 
     
