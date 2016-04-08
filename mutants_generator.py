@@ -7,6 +7,7 @@ import pexpect
 from xml.etree import ElementTree
 import subprocess
 from mutation_analyser import MutationAnalyser
+from mutants_selector import MutantsSelector
 
 def readAndroidManifest(source_directory):
   manifest = ElementTree.parse(os.path.join(source_directory, 'AndroidManifest.xml')).getroot()
@@ -56,35 +57,45 @@ def generateMutants(file):
   
   source_directory = decompress(file, True)
 
-  config = {}
-  config['file'] = file[:-4]
-  config['package'], config['start_activity'] = readAndroidManifest(source_directory)
+  config_file = os.path.join(file[:-4], 'config')
 
-  config_file = os.path.join(config['file'], 'config')
+  if os.path.exists(config_file):
+    with open(config_file, 'rb') as handle:
+      config = json.load(handle)
+  else:
+    config = {}
+    config['file'] = file[:-4]
+    config['package'], config['start_activity'] = readAndroidManifest(source_directory)
+    config['instrument_package'] = config['package']
+    with open(config_file, 'wb') as handle:
+      json.dump(config, handle)
 
-  with open(config_file, 'wb') as handle:
-    json.dump(config, handle)
-
-  path = os.path.join(source_directory, 'smali', *config['package'].split('.')) #TODO: Take paramater or read from file
+  # path = os.path.join(source_directory, 'smali')
+  path = os.path.join(source_directory, 'smali', *config['instrument_package'].split('.')) #TODO: Take paramater or read from file
 
   mutation_analyser = MutationAnalyser()
   mutants = mutation_analyser.checkMutations(path)
-        
+
   print "\nNumber of mutants generated: %d\n" % len(mutants)
+
+  # selector = MutantsSelector()
+  # mutants = selector.randomSampling(mutants)
+        
+  # print "\nNumber of mutants selected: %d\n" % len(mutants)
 
   mutants_list = os.path.join(config['file'], 'mutants')
   with open(mutants_list, 'wb') as handle:
     json.dump(mutants, handle)
 
-  for m in mutants:
-    if 'label' in m:
-      file_original = instrument(m['file'], m['line_num'], m['mutant'], m['label_line'], m['label'])
-    else:
-      file_original = instrument(m['file'], m['line_num'], m['mutant'])
-    new_apk_path = compress(file.split('.')[0], m['id'])
-    with open(m['file'], 'w') as f:
-      f.writelines(file_original)
-    signApk(new_apk_path)
+  # for m in mutants:
+  #   if 'label' in m:
+  #     file_original = instrument(m['file'], m['line_num'], m['mutant'], m['label_line'], m['label'])
+  #   else:
+  #     file_original = instrument(m['file'], m['line_num'], m['mutant'])
+  #   new_apk_path = compress(file.split('.')[0], m['id'])
+  #   with open(m['file'], 'w') as f:
+  #     f.writelines(file_original)
+  #   signApk(new_apk_path)
 
   return config['file']
 

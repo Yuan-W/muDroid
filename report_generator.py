@@ -30,10 +30,29 @@ class ReportGenerator():
         o2 = {'line_num': ''}
 
         killed_num = 0
+        aor_num = 0
+        ror_num = 0
+        icr_num = 0
+        uoi_num = 0
+        lcr_num = 0
+        rvr_num = 0
 
         for o in mutants:
             if o['killed']:
                 killed_num += 1
+            if o['operator_type'] == 'ICR':
+                icr_num += 1
+            elif o['operator_type'] == 'UOI':
+                uoi_num += 1
+            elif o['operator_type'] == 'LCR':
+                lcr_num += 1
+            elif o['operator_type'] == 'AOR':
+                aor_num += 1
+            elif o['operator_type'] == 'ROR':
+                ror_num += 1
+            elif o['operator_type'] == 'RVR':
+                rvr_num += 1
+
             if o2['line_num'] == o['line_num']:
                 ReportGenerator.writeTable(report, [o['id'], '', '', '', '', '', '', o['line'], o['mutant'], o['killed']])
             else:
@@ -41,9 +60,18 @@ class ReportGenerator():
             o2 = o
         report.write('</table>\n')
 
-        mutation_score = killed_num / len(mutants)
-
-        report.write('Mutation Scort: %0.4f\n' % mutation_score)
+        mutation_score = killed_num / float(len(mutants))
+        report.write('<span style="display:block; height: 30;"></span>\n<table>\n')
+        ReportGenerator.writeTable(report, ['ICR', icr_num, '%0.4f\n' % (icr_num / float(len(mutants)))])
+        ReportGenerator.writeTable(report, ['UOI', uoi_num, '%0.4f\n' % (uoi_num / float(len(mutants)))])
+        ReportGenerator.writeTable(report, ['LCR', lcr_num, '%0.4f\n' % (lcr_num / float(len(mutants)))])
+        ReportGenerator.writeTable(report, ['AOR', aor_num, '%0.4f\n' % (aor_num / float(len(mutants)))])
+        ReportGenerator.writeTable(report, ['ROR', ror_num, '%0.4f\n' % (ror_num / float(len(mutants)))])
+        ReportGenerator.writeTable(report, ['RVR', rvr_num, '%0.4f\n' % (rvr_num / float(len(mutants)))])
+        report.write('</table>\n')
+        report.write('<span style="display:block; height: 30;"></span>\n')
+        report.write('Mutation Score: %0.4f\n' % mutation_score)
+        
 
 if __name__ == "__main__":
     import sys, os, json

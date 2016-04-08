@@ -5,7 +5,7 @@ import struct
 class MutationAnalyser:
 
   ICR = 'ICR' #'Inline Constant Replacement'
-  UOI = 'UOI' #'Unary Operator Insertion'
+  NOI = 'NOI' #'Negative Operator Invertion'
   LCR = 'LCR' #'Logical Connector Replacement'
   AOR = 'AOR' #'Arithmetic Operator Replacement'
   ROR = 'ROR' #'Relational Operator Replacement'
@@ -17,13 +17,12 @@ class MutationAnalyser:
   logicalConnector={'name':LCR, 'operators':['((if-).*)(:.*)']}
 
   arithmeticOperator={'name':AOR, 'operators':['add-', 'rsub-', 'sub-', 'div-', 'mul-', 'rem-']}
-  relationalOperator={'name':ROR, 'operators':['if-eq', 'if-ne', 'if-lt', 'if-ge', 'if-gt', 'if-le']} 
-  #TODO: Verify if-eqz will be used when b is 0 in a == b
+  relationalOperator={'name':ROR, 'operators':['if-eq', 'if-ne', 'if-lt', 'if-ge', 'if-gt', 'if-le']}
   
-  unaryOperator={'name':UOI, 'operators':['not-', 'neg-']} # TODO: a=!b
+  negativeOperator={'name':NOI, 'operators':['not-', 'neg-']} # TODO: a=!b
   returnOperator={'name':RVR, 'operators':['return-object', 'return v']}
 
-  mutation_operators = [arithmeticOperator, relationalOperator, unaryOperator, valueOperator, returnOperator]
+  mutation_operators = [arithmeticOperator, relationalOperator, negativeOperator, valueOperator, returnOperator]
 
   id = 1
 
@@ -44,8 +43,10 @@ class MutationAnalyser:
     sec_num = 1
     max_conds = -1
     ori_line_num = 0
+    sec_record = False
     with open(file_path, 'r') as f:
       for num, line in enumerate(f, 1):
+        # print repr(line)
         if '.method' in line:
           method = line
           max_conds = -1
@@ -53,6 +54,12 @@ class MutationAnalyser:
           if max_conds >=0:
             hashkey = file_path+':'+method
             self.methodConds[hashkey]=max_conds
+
+            if sec_record:
+              lcr_match = re.findall(self.logicalConnector['operators'][0], section)
+              if(len(lcr_match) == 2):
+                lcr_keys.append({'file': file_path, 'section': section, 'line_num': sec_num, 'ori_line_num': ori_line_num, 'operator': self.logicalConnector['operators'][0], 'operator_type': self.LCR, 'method': method, 'killed': False})
+            sec_record = False
         elif ':cond' in line:
           cond_num_raw = re.search(':cond_([0-9]*)', line).group(1)
           if cond_num_raw != '':
@@ -61,16 +68,19 @@ class MutationAnalyser:
               max_conds = cond_num
             # print line, cond_num, max_conds
         elif '.line' in line:
-          lcr_match = re.findall(self.logicalConnector['operators'][0], section)
-          if(len(lcr_match) == 2):
-            lcr_keys.append({'file': file_path, 'section': section, 'line_num': sec_num, 'ori_line_num': ori_line_num, 'operator': self.logicalConnector['operators'][0], 'operator_type': self.LCR, 'method': method, 'killed': False})
+          if sec_record:
+            lcr_match = re.findall(self.logicalConnector['operators'][0], section)
+            if(len(lcr_match) == 2):
+              lcr_keys.append({'file': file_path, 'section': section, 'line_num': sec_num, 'ori_line_num': ori_line_num, 'operator': self.logicalConnector['operators'][0], 'operator_type': self.LCR, 'method': method, 'killed': False})
             # mutants += self.generateMutants(original_key)
             # print original_key
-          sec_num = num
-          indent = line.split('.')[0]
-          ori_line_num = line.strip().split(' ')[1]
           section = ''
-        if line.startswith(indent) or line == '\n':
+          sec_record = True
+          if '.line' in line:
+            sec_num = num
+            indent = line.split('.')[0]
+            ori_line_num = line.strip().split(' ')[1]         
+        if sec_record and (line.startswith(indent) or line == '\n'):
           section = section + line
         for operator in self.mutation_operators:
           if operator['name'] == self.ICR:
@@ -102,7 +112,7 @@ class MutationAnalyser:
   def generateMutants(self, key):
     operator_type = key['operator_type']
 
-    if operator_type == self.UOI:
+    if operator_type == self.NOI:
       return [self.newMutant(key, key['line']*2)]
     elif operator_type == self.LCR:
       return [self.processLCR(key)]
@@ -164,7 +174,7 @@ class MutationAnalyser:
         mutants = [operator for operator in operators if (operator != key['operator'] and operator != 'sub-')]
         op = key['operator']
         if 'lit' not in key['line']:
-          print '*'*40
+          # print '*'*40
           op = 'rsub-int'
           mutants = [m + 'int/lit16' for m in mutants]
         for mutant in mutants:
