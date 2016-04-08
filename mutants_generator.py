@@ -87,15 +87,15 @@ def generateMutants(file):
   with open(mutants_list, 'wb') as handle:
     json.dump(mutants, handle)
 
-  # for m in mutants:
-  #   if 'label' in m:
-  #     file_original = instrument(m['file'], m['line_num'], m['mutant'], m['label_line'], m['label'])
-  #   else:
-  #     file_original = instrument(m['file'], m['line_num'], m['mutant'])
-  #   new_apk_path = compress(file.split('.')[0], m['id'])
-  #   with open(m['file'], 'w') as f:
-  #     f.writelines(file_original)
-  #   signApk(new_apk_path)
+  for m in mutants:
+    if 'label' in m:
+      file_original = instrument(m['file'], m['line_num'], m['mutant'], m['label_line'], m['label'])
+    else:
+      file_original = instrument(m['file'], m['line_num'], m['mutant'])
+    new_apk_path = compress(file.split('.')[0], m['id'])
+    with open(m['file'], 'w') as f:
+      f.writelines(file_original)
+    signApk(new_apk_path)
 
   return config['file']
 
