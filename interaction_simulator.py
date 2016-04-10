@@ -48,8 +48,9 @@ def executeMutant(package, start_activity, original_apk, file_path, img_path, co
     original_image = "{}/{}_0.png".format(img_path, original_apk)
     instrumented_image = "{}/{}_0.png".format(img_path, os.path.basename(file_path))
 
-    if(not checkSimilarPictures(original_image, instrumented_image)):
-        return True
+    similar, crashed = checkSimilarPictures(original_image, instrumented_image)
+    if(not similar):
+        return True, crashed
 
     img_index = 1
     for i, c in enumerate(commands):
@@ -61,17 +62,19 @@ def executeMutant(package, start_activity, original_apk, file_path, img_path, co
             instrumented_image = captureScreen(img_name, img_path)
             original_image = "{}/{}_{}.png".format(img_path, original_apk, img_index)
             img_index += 1
-            if(not checkSimilarPictures(original_image, instrumented_image)):
-                return True
+            similar, crashed = checkSimilarPictures(original_image, instrumented_image)
+            if(not similar):
+                return True, crashed
 
     if (len(commands) % EVENTS_PER_IMAGE) != 0:
         sleep(SCREEN_CPATURE_DELAY)
         img_name= "{}_{}.png".format(os.path.basename(file_path), img_index)
         instrumented_image = captureScreen(img_name, img_path)
         original_image = "{}/{}_{}.png".format(img_path, original_apk, img_index)
-        if(not checkSimilarPictures(original_image, instrumented_image)):
-            return True
-    return False
+        similar, crashed = checkSimilarPictures(original_image, instrumented_image)
+        if(not similar):
+            return True, similar
+    return False, crashed
 
 def executeApk(package, start_activity, file_path, img_path):
     command = ['adb', 'uninstall', package]
@@ -120,7 +123,7 @@ def simulate(directory):
 
     for m in mutants:
         new_apk_path = os.path.join(directory, '{}_{}.apk'.format(config['file'], m['id']))
-        m['killed'] = executeMutant(config['package'], config['start_activity'], original_apk, new_apk_path, report_path, commands)
+        m['killed'], m['crashed'] = executeMutant(config['package'], config['start_activity'], original_apk, new_apk_path, report_path, commands)
         print m['id'], m['killed']
 
     new_mutants_list = os.path.join(report_path, 'mutants')

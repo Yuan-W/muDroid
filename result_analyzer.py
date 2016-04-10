@@ -11,13 +11,15 @@ def analyze_results(file_name, directory):
 
     for m in mutants:
         index = 0
-        print 'Processing mutants ' + m['id']
+        print 'Processing mutants %d' % m['id']
         instrumented_image = os.path.join(directory, '%s_%d.apk_%d.png' % (file_name, m['id'], index))
-        print instrumented_image
+        # print instrumented_image
         while(os.path.exists(instrumented_image)):
             original_image = os.path.join(directory, '%s.apk_%d.png' % (file_name, index))
             # print original_image, instrumented_image
-            if not checkSimilarPictures(original_image, instrumented_image):
+            similar, crashed = checkSimilarPictures(original_image, instrumented_image)
+            m['crashed'] = crashed
+            if not similar:
                 m['killed'] = True
                 break
             index += 1

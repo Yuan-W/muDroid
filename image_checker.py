@@ -14,7 +14,7 @@ def checkSimilarPictures(pic1, pic2, x_max=DIFF_THRESHOLD, y_max=DIFF_THRESHOLD)
     diff = ImageChops.difference(image1, image2)
     box = diff.getbbox()
     if box is None:
-        return True
+        return True, False
 
     xdiff = abs(box[0] - box[2])
     ydiff = abs(box[1] - box[3])
@@ -32,9 +32,9 @@ def checkSimilarPictures(pic1, pic2, x_max=DIFF_THRESHOLD, y_max=DIFF_THRESHOLD)
 
         if rms > RMS_THRESHOLD:
             # print 'RMS', rms
-            return False
+            return False, False
 
-    return True
+    return True, False
 
 if __name__ == "__main__":
     import sys
