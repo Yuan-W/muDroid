@@ -36,12 +36,14 @@ def captureScreen(pic_name, path):
 def executeOriginal(package, start_activity, file_path, img_path, commands):
     executeApk(package, start_activity, file_path, img_path)
     file_name = os.path.basename(file_path)
+    img_index = 1
     for i, c in enumerate(commands):
         executeCommand(c)
         if ((i+1) % EVENTS_PER_IMAGE) == 0:
             sleep(SCREEN_CPATURE_DELAY)
-            img_name = '%s_%d.png' % (file_name, i+1)
-            img = captureScreen(img_name, img_path)            
+            img_name = '%s_%d.png' % (file_name, img_index)
+            img = captureScreen(img_name, img_path)
+            img_index += 1           
 
 def executeMutant(package, start_activity, original_apk, file_path, img_path, commands):
     executeApk(package, start_activity, file_path, img_path)
