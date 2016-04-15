@@ -3,7 +3,7 @@ from PIL import Image, ImageChops
 import math
 
 DIFF_THRESHOLD = 10
-CRASH_THRESHOLD = 800
+CRASH_THRESHOLD = 400
 RMS_THRESHOLD = 1
 
 def checkSimilarPictures(pic1, pic2, x_max=DIFF_THRESHOLD, y_max=DIFF_THRESHOLD):

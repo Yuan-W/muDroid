@@ -9,7 +9,7 @@ import subprocess
 from inputs_generator import generateCommands
 from image_checker import checkSimilarPictures
 
-EVENTS_PER_IMAGE = 1
+EVENTS_PER_IMAGE = 50
 APP_START_DELAY = 2
 STATUS_BAR_CROP_HEIGHT = 80
 SCREEN_CPATURE_DELAY = 0
@@ -43,7 +43,12 @@ def executeOriginal(package, start_activity, file_path, img_path, commands):
             sleep(SCREEN_CPATURE_DELAY)
             img_name = '%s_%d.png' % (file_name, img_index)
             img = captureScreen(img_name, img_path)
-            img_index += 1           
+            img_index += 1 
+
+    if (len(commands) % EVENTS_PER_IMAGE) != 0:
+        sleep(SCREEN_CPATURE_DELAY)
+        img_name= "{}_{}.png".format(file_name, img_index)
+        captureScreen(img_name, img_path)
 
 def executeMutant(package, start_activity, original_apk, file_path, img_path, commands):
     executeApk(package, start_activity, file_path, img_path)

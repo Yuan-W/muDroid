@@ -24,21 +24,21 @@ class MutantionAnalyzerTest(unittest.TestCase):
     result = 'const/4 v0, -0x8'
     self.assertEqual(mutation, result)
 
-  def testDoubleHigh16IntegerConst(self):
+  def testDoubleHigh16Const(self):
     mutation_analyser = MutationAnalyser()
     test_line = 'const-wide/high16 v4, 0x4059000000000000L    # 100.0'
     mutation = mutation_analyser.processConst(test_line)
     result = 'const-wide v4, 0x4059400000000000L    # 100.0'
     self.assertEqual(mutation, result)
 
-  def testZeroDoubleIntegerConst(self):
+  def testZeroDoubleConst(self):
     mutation_analyser = MutationAnalyser()
     test_line = 'const-wide/high16 v4, 0x0000000000000000L    # 0.0'
     mutation = mutation_analyser.processConst(test_line)
     result = 'const-wide/high16 v4, 0x3ff0000000000000L    # 0.0'
     self.assertEqual(mutation, result)
 
-  def testDoubleIntegerConst(self):
+  def testDoubleConst(self):
     mutation_analyser = MutationAnalyser()
     test_line = 'const-wide/high16 v4, 0x0000000000000000L    # 0.0'
     mutation = mutation_analyser.processConst(test_line)
