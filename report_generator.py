@@ -48,7 +48,7 @@ class ReportGenerator():
             
             if o['operator_type'] == 'ICR':
                 icr_num += 1
-            elif o['operator_type'] == 'UOI':
+            elif o['operator_type'] == 'NOI':
                 uoi_num += 1
             elif o['operator_type'] == 'LCR':
                 lcr_num += 1
@@ -69,7 +69,7 @@ class ReportGenerator():
         mutation_score = killed_num / float(len(mutants))
         report.write('<span style="display:block; height: 30;"></span>\n<table>\n')
         ReportGenerator.writeTable(report, ['ICR', icr_num, '%0.4f\n' % (icr_num / float(len(mutants)))])
-        ReportGenerator.writeTable(report, ['UOI', uoi_num, '%0.4f\n' % (uoi_num / float(len(mutants)))])
+        ReportGenerator.writeTable(report, ['NOI', uoi_num, '%0.4f\n' % (uoi_num / float(len(mutants)))])
         ReportGenerator.writeTable(report, ['LCR', lcr_num, '%0.4f\n' % (lcr_num / float(len(mutants)))])
         ReportGenerator.writeTable(report, ['AOR', aor_num, '%0.4f\n' % (aor_num / float(len(mutants)))])
         ReportGenerator.writeTable(report, ['ROR', ror_num, '%0.4f\n' % (ror_num / float(len(mutants)))])

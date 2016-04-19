@@ -78,10 +78,12 @@ def generateMutants(file):
 
   print "\nNumber of mutants generated: %d\n" % len(mutants)
 
-  # selector = MutantsSelector()
+  selector = MutantsSelector()
   # mutants = selector.randomSampling(mutants)
-        
-  # print "\nNumber of mutants selected: %d\n" % len(mutants)
+  # mutants = selector.inlineRandomSmali(mutants)
+  # mutants = selector.inlineRandomSource(mutants)
+  # mutants = selector.equalization(mutants)
+  # mutants = selector.patternSelection(mutants)
 
   mutants_list = os.path.join(config['file'], 'mutants')
   with open(mutants_list, 'wb') as handle:

@@ -9,15 +9,15 @@ import subprocess
 from inputs_generator import generateCommands
 from image_checker import checkSimilarPictures
 
-EVENTS_PER_IMAGE = 50
+EVENTS_PER_IMAGE = 1
 APP_START_DELAY = 2
 STATUS_BAR_CROP_HEIGHT = 80
-SCREEN_CPATURE_DELAY = 0
+SCREEN_CPATURE_DELAY = 0.2
 
 def captureScreen(pic_name, path):
     image_path = os.path.join(path, pic_name)
     device_path = '/sdcard/%s' % pic_name
-
+    sleep(SCREEN_CPATURE_DELAY)
     command = ['adb', 'shell', "screencap -p", device_path]
     subprocess.call(command)
     command = ['adb', 'pull', device_path, image_path]
@@ -28,6 +28,8 @@ def captureScreen(pic_name, path):
 
     command = ['adb', 'shell', 'rm', device_path]
     subprocess.call(command)
+    # command = ['screenshot2', image_path]
+    # subprocess.call(command)
     img = Image.open(image_path)
     w, h = img.size
     img.crop((0, STATUS_BAR_CROP_HEIGHT, w, h)).save(image_path)
@@ -38,15 +40,16 @@ def executeOriginal(package, start_activity, file_path, img_path, commands):
     file_name = os.path.basename(file_path)
     img_index = 1
     for i, c in enumerate(commands):
+        # print i, c
         executeCommand(c)
         if ((i+1) % EVENTS_PER_IMAGE) == 0:
-            sleep(SCREEN_CPATURE_DELAY)
+            # sleep(SCREEN_CPATURE_DELAY)
             img_name = '%s_%d.png' % (file_name, img_index)
             img = captureScreen(img_name, img_path)
             img_index += 1 
 
     if (len(commands) % EVENTS_PER_IMAGE) != 0:
-        sleep(SCREEN_CPATURE_DELAY)
+        # sleep(SCREEN_CPATURE_DELAY)
         img_name= "{}_{}.png".format(file_name, img_index)
         captureScreen(img_name, img_path)
 
@@ -59,29 +62,33 @@ def executeMutant(package, start_activity, original_apk, file_path, img_path, co
     if(not similar):
         return True, crashed
 
+    result = False, crashed
+
     img_index = 1
     for i, c in enumerate(commands):
         executeCommand(c)
 
         if ((i+1) % EVENTS_PER_IMAGE) == 0:
-            sleep(SCREEN_CPATURE_DELAY)
+            # sleep(SCREEN_CPATURE_DELAY)
             img_name= "{}_{}.png".format(os.path.basename(file_path), img_index)
             instrumented_image = captureScreen(img_name, img_path)
             original_image = "{}/{}_{}.png".format(img_path, original_apk, img_index)
             img_index += 1
             similar, crashed = checkSimilarPictures(original_image, instrumented_image)
             if(not similar):
+                # result = True, crashed
                 return True, crashed
 
     if (len(commands) % EVENTS_PER_IMAGE) != 0:
-        sleep(SCREEN_CPATURE_DELAY)
+        # sleep(SCREEN_CPATURE_DELAY)
         img_name= "{}_{}.png".format(os.path.basename(file_path), img_index)
         instrumented_image = captureScreen(img_name, img_path)
         original_image = "{}/{}_{}.png".format(img_path, original_apk, img_index)
         similar, crashed = checkSimilarPictures(original_image, instrumented_image)
         if(not similar):
-            return True, similar
-    return False, crashed
+            # result = True, crashed
+            return True, crashed
+    return result
 
 def executeApk(package, start_activity, file_path, img_path):
     command = ['adb', 'uninstall', package]
@@ -129,6 +136,8 @@ def simulate(directory):
     executeOriginal(config['package'], config['start_activity'], original_apk, report_path, commands)
 
     for m in mutants:
+        # if m['id'] <= 476:
+        #     continue
         new_apk_path = os.path.join(directory, '{}_{}.apk'.format(config['file'], m['id']))
         m['killed'], m['crashed'] = executeMutant(config['package'], config['start_activity'], original_apk, new_apk_path, report_path, commands)
         print m['id'], m['killed']

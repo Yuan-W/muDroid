@@ -11,8 +11,6 @@ class MutationAnalyser:
   ROR = 'ROR' #'Relational Operator Replacement'
   RVR = 'RVR' #'Return Value Replacement'
 
-  methodConds={}
-
   valueOperator = {'name':ICR, 'operators':['\s*const.*\/.*#.*', '\s*const/(4|16)']}
   logicalConnector={'name':LCR, 'operators':['((if-).*)(:.*)']}
 
@@ -21,6 +19,8 @@ class MutationAnalyser:
   
   negativeOperator={'name':NOI, 'operators':['not-', 'neg-']} # TODO: a=!b
   returnOperator={'name':RVR, 'operators':['return-object', 'return v']}
+
+  methodConds={}
 
   mutation_operators = [arithmeticOperator, relationalOperator, negativeOperator, valueOperator, returnOperator]
 
