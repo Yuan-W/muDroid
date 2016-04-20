@@ -107,7 +107,7 @@ class MutantsSelector:
     for i in range(len(operators_aor)):
       self.addTwoWayDict(self.invert_aor_dict, operators_aor[i], inverts_aor[i])
 
-    print self.invert_aor_dict
+    # print self.invert_aor_dict
     
 
   def isInvertROR(self, mutant):
@@ -133,7 +133,7 @@ class MutantsSelector:
     if ori_operator == 'rsub':
       ori_operator = 'sub'
     if self.invert_aor_dict[ori_operator] in mutant_operator:
-      print ori_operator, mutant_operator
+      # print ori_operator, mutant_operator
       return True
     return False
 

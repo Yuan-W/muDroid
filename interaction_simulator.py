@@ -9,10 +9,10 @@ import subprocess
 from inputs_generator import generateCommands
 from image_checker import checkSimilarPictures
 
-EVENTS_PER_IMAGE = 1
-APP_START_DELAY = 2
+EVENTS_PER_IMAGE = 50
+APP_START_DELAY = 7
 STATUS_BAR_CROP_HEIGHT = 80
-SCREEN_CPATURE_DELAY = 0.2
+SCREEN_CPATURE_DELAY = 1
 
 def captureScreen(pic_name, path):
     image_path = os.path.join(path, pic_name)
@@ -40,16 +40,18 @@ def executeOriginal(package, start_activity, file_path, img_path, commands):
     file_name = os.path.basename(file_path)
     img_index = 1
     for i, c in enumerate(commands):
-        # print i, c
-        executeCommand(c)
-        if ((i+1) % EVENTS_PER_IMAGE) == 0:
-            # sleep(SCREEN_CPATURE_DELAY)
+        if c == 'screenshot':
             img_name = '%s_%d.png' % (file_name, img_index)
             img = captureScreen(img_name, img_path)
             img_index += 1 
+        else:
+            executeCommand(c)
+            if ((i+1) % EVENTS_PER_IMAGE) == 0:
+                img_name = '%s_%d.png' % (file_name, img_index)
+                img = captureScreen(img_name, img_path)
+                img_index += 1
 
     if (len(commands) % EVENTS_PER_IMAGE) != 0:
-        # sleep(SCREEN_CPATURE_DELAY)
         img_name= "{}_{}.png".format(file_name, img_index)
         captureScreen(img_name, img_path)
 
@@ -66,10 +68,7 @@ def executeMutant(package, start_activity, original_apk, file_path, img_path, co
 
     img_index = 1
     for i, c in enumerate(commands):
-        executeCommand(c)
-
-        if ((i+1) % EVENTS_PER_IMAGE) == 0:
-            # sleep(SCREEN_CPATURE_DELAY)
+        if c == 'screenshot':
             img_name= "{}_{}.png".format(os.path.basename(file_path), img_index)
             instrumented_image = captureScreen(img_name, img_path)
             original_image = "{}/{}_{}.png".format(img_path, original_apk, img_index)
@@ -78,9 +77,20 @@ def executeMutant(package, start_activity, original_apk, file_path, img_path, co
             if(not similar):
                 # result = True, crashed
                 return True, crashed
+        else:
+            executeCommand(c)
+
+            if ((i+1) % EVENTS_PER_IMAGE) == 0:
+                img_name= "{}_{}.png".format(os.path.basename(file_path), img_index)
+                instrumented_image = captureScreen(img_name, img_path)
+                original_image = "{}/{}_{}.png".format(img_path, original_apk, img_index)
+                img_index += 1
+                similar, crashed = checkSimilarPictures(original_image, instrumented_image)
+                if(not similar):
+                    # result = True, crashed
+                    return True, crashed
 
     if (len(commands) % EVENTS_PER_IMAGE) != 0:
-        # sleep(SCREEN_CPATURE_DELAY)
         img_name= "{}_{}.png".format(os.path.basename(file_path), img_index)
         instrumented_image = captureScreen(img_name, img_path)
         original_image = "{}/{}_{}.png".format(img_path, original_apk, img_index)

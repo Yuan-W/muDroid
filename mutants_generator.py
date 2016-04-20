@@ -85,6 +85,8 @@ def generateMutants(file):
   # mutants = selector.equalization(mutants)
   # mutants = selector.patternSelection(mutants)
 
+  print "\nNumber of mutants selected: %d\n" % len(mutants)
+
   mutants_list = os.path.join(config['file'], 'mutants')
   with open(mutants_list, 'wb') as handle:
     json.dump(mutants, handle)

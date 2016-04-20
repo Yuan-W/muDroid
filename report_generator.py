@@ -59,7 +59,7 @@ class ReportGenerator():
             elif o['operator_type'] == 'RVR':
                 rvr_num += 1
 
-            if o2['line_num'] == o['line_num']:
+            if o2['line_num'] == o['line_num'] and o2['file'] == o['file']:
                 ReportGenerator.writeTable(report, [o['id'], '', '', '', '', '', '', o['line'], o['mutant'], o['killed'], o['crashed']])
             else:
                 ReportGenerator.writeTable(report, [o['id'], o['operator'], o['operator_type'], o['file'], o['line_num'], o['ori_line_num'], o['method'], o['line'], o['mutant'], o['killed'], o['crashed']])
