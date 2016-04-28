@@ -3,8 +3,8 @@
 import argparse
 import sys, os, glob
 from mutation_analyser import MutationAnalyser
-from mutants_generator import generateMutants
-from inputs_generator import generateCommands
+from mutant_generator import generateMutants
+from input_generator import generateCommands
 from interaction_simulator import simulate
 from result_analyzer import analyze_results
 

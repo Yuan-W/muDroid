@@ -5,7 +5,7 @@ import struct
 class MutationAnalyser:
 
   ICR = 'ICR' #'Inline Constant Replacement'
-  NOI = 'NOI' #'Negative Operator Invertion'
+  NOI = 'NOI' #'Negative Operator Inversion'
   LCR = 'LCR' #'Logical Connector Replacement'
   AOR = 'AOR' #'Arithmetic Operator Replacement'
   ROR = 'ROR' #'Relational Operator Replacement'

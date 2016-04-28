@@ -1,13 +1,14 @@
 #!/usr/local/bin/python
 
 import argparse
+import time
 import sys, os
 import json
 import pexpect
 from xml.etree import ElementTree
 import subprocess
 from mutation_analyser import MutationAnalyser
-from mutants_selector import MutantsSelector
+from mutant_selector import MutantsSelector
 
 def readAndroidManifest(source_directory):
   manifest = ElementTree.parse(os.path.join(source_directory, 'AndroidManifest.xml')).getroot()
@@ -82,7 +83,7 @@ def generateMutants(file):
   # mutants = selector.randomSampling(mutants)
   # mutants = selector.inlineRandomSmali(mutants)
   # mutants = selector.inlineRandomSource(mutants)
-  # mutants = selector.equalization(mutants)
+  mutants = selector.equalization(mutants)
   # mutants = selector.patternSelection(mutants)
 
   print "\nNumber of mutants selected: %d\n" % len(mutants)
@@ -92,6 +93,7 @@ def generateMutants(file):
     json.dump(mutants, handle)
 
   for m in mutants:
+    time1 = time.time()
     if 'label' in m:
       file_original = instrument(m['file'], m['line_num'], m['mutant'], m['label_line'], m['label'])
     else:
@@ -100,6 +102,8 @@ def generateMutants(file):
     with open(m['file'], 'w') as f:
       f.writelines(file_original)
     signApk(new_apk_path)
+    time_spend = time.time() - time1
+    print 'Spend: %s seconds' % time_spend
 
   return config['file']
 

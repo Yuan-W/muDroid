@@ -6,13 +6,13 @@ import json
 from time import sleep, strftime
 from PIL import Image
 import subprocess
-from inputs_generator import generateCommands
+from input_generator import generateCommands
 from image_checker import checkSimilarPictures
 
 EVENTS_PER_IMAGE = 50
-APP_START_DELAY = 7
+APP_START_DELAY = 2
 STATUS_BAR_CROP_HEIGHT = 80
-SCREEN_CPATURE_DELAY = 1
+SCREEN_CPATURE_DELAY = 0.2
 
 def captureScreen(pic_name, path):
     image_path = os.path.join(path, pic_name)
