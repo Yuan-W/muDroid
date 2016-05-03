@@ -93,7 +93,7 @@ def generateMutants(file):
     json.dump(mutants, handle)
 
   for m in mutants:
-    time1 = time.time()
+    # time1 = time.time()
     if 'label' in m:
       file_original = instrument(m['file'], m['line_num'], m['mutant'], m['label_line'], m['label'])
     else:
@@ -102,8 +102,8 @@ def generateMutants(file):
     with open(m['file'], 'w') as f:
       f.writelines(file_original)
     signApk(new_apk_path)
-    time_spend = time.time() - time1
-    print 'Spend: %s seconds' % time_spend
+    # time_spend = time.time() - time1
+    # print 'Spend: %s seconds' % time_spend
 
   return config['file']
 

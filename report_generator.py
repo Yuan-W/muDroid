@@ -15,6 +15,11 @@ class ReportGenerator():
 
     @staticmethod
     def generateReport(mutants, report_path):
+        from operator import itemgetter
+
+        mutants = sorted(mutants, key=itemgetter('id')) 
+
+
         report = open("%s/result.html" % report_path, "w")
         report.write('''<style>
         table {
